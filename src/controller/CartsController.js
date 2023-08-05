@@ -62,6 +62,8 @@ class CartsController {
 
       await cart.deleteOne()
 
+      return res.status(204).json()
+
     } catch (error) {
       console.error(err)
       return res.status(500).json({ error: 'Internal Server Error' })
