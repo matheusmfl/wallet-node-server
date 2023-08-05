@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import routes from './routes'
 
 class App {
   constructor() {
@@ -13,8 +14,8 @@ class App {
   }
 
   routes() {
-
+    this.server.use(routes)
   }
 }
 
-export default new App.server()
+export default new App().server
