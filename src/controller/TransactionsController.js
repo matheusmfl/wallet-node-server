@@ -1,4 +1,5 @@
 import Transaction from '../models/Transaction'
+import TransactionService from '../services/TransactionService'
 import Cart from '../models/carts'
 import * as Yup from 'yup'
 import parsePhoneNumber from 'libphonenumber-js'
@@ -61,9 +62,39 @@ class TransactionsController {
         return res.status(404).json({ error: 'Not Found' })
       }
 
-      return res.status(200).json()
+      const service = new TransactionService()
+      const response = await service.process(
+        {
+          cartCode,
+          paymentType,
+          installments,
+          customer: {
+            name: customerName,
+            email: customerEmail,
+            mobile: customerMobile,
+            document: customerDocument,
+          },
+          billing: {
+            address: billingAddress,
+            name: billingName,
+            number: billingNumber,
+            neighborhood: billingNeighborhood,
+            city: billingCity,
+            state: billingState,
+            zipCode: billingZipCode,
+          },
+          creditCard: {
+            number: creditCardNumber,
+            expiration: creditCardExpiration,
+            holderName: creditCardHolderName,
+            cvv: creditCardCvv,
+          }
+        }
+      )
+
+      return res.status(200).json(response)
     } catch (error) {
-      console.error(err)
+      console.error(error)
       return res.status(500).json({ error: 'Internal Server Error' })
     }
   }

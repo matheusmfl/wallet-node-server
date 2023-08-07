@@ -11,7 +11,7 @@ const schema = new mongoose.Schema({
     unique: true,
   },
   status: {
-    type: Number,
+    type: String,
     enum: [
       "started",
       "processing",
