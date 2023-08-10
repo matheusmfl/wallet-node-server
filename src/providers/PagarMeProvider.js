@@ -1,4 +1,5 @@
 import { cpf } from 'cpf-cnpj-validator'
+import pagarme from 'pagarme'
 
 class PagarMeProvider {
   async process({
@@ -30,20 +31,18 @@ class PagarMeProvider {
 
 
 
-    let payment_params
+    var paymentParams
 
-    switch (paymentType) {
-      case "credit_card":
-        payment_params = creditCardParams
-        break
-
-      case "billet":
-        payment_params = billetParams
-        break
-
-      default:
-        throw `Payment type ${paymentType} not supported`
+    if (paymentType == 'credit_card') {
+      paymentParams = creditCardParams
     }
+    else if (paymentType == 'billet') {
+      paymentParams = billetParams
+    }
+    else {
+      throw `Payment type ${paymentType} not supported`
+    }
+
 
     const customerParams = {
       customer: {
@@ -64,7 +63,7 @@ class PagarMeProvider {
       }
     }
 
-    const billingParams = billing?.zipcode ? {
+    const billingParams = billing?.zipCode ? {
       billing: {
         name: "Billing Adress",
         address: {
@@ -72,16 +71,91 @@ class PagarMeProvider {
           state: billing.state,
           city: billing.city,
           neighborhood: billing.neighborhood,
-          street: billing.street,
+          street: billing.address,
           street_number: billing.number,
-          zipcode: billing.zipcode
+          zipcode: billing.zipCode
         }
       }
     } : {
 
     }
 
+    const itemsParams = items && items.length > 0 ? {
+      items: items.map((item) => {
+        return ({
+          id: item?.id.toString(),
+          title: item?.title,
+          unit_price: item?.amount * 100,
+          quantity: item?.quantity || 1,
+          tangible: false,
+        })
+      })
+    } : {
+      items: [
+        {
+          id: "1",
+          title: `t-${transactionCode}`,
+          unit_price: total * 100,
+          quantity: 1,
+          tangible: false,
+        }
+      ]
+    }
 
+    const metaDataParams = {
+      metadata: {
+        transaction_code: transactionCode
+      }
+    }
+
+    const transactionsParams = {
+      async: false,
+      //postback_url: '',
+      ...paymentParams,
+      ...customerParams,
+      ...billingParams,
+      ...itemsParams,
+      ...metaDataParams
+    }
+
+    const client = await pagarme.client.connect({
+      secret_key: 'pk_test_6eAq8PBf5VfZdaJr',
+
+    })
+
+    const response = await client.transactions.create(transactionsParams)
+
+    console.log("response", response)
+
+    return {
+      transactionId: response.id,
+      status: this.translateStatus(response.status),
+      billing: {
+        url: response.boleto_url,
+        barCode: response.boleto_barCode
+      },
+      card: {
+        id: response.card?.id
+      },
+      processorResponse: JSON.stringify(response)
+
+    }
+
+  }
+
+  translateStatus(status) {
+    const statusMap = {
+      processing: "processing",
+      waiting_payment: "pending",
+      authorized: "pending",
+      paid: "approved",
+      refused: "refused",
+      pending_refunded: "refunded",
+      refunded: "refunded",
+      chargeBack: "chargeback"
+    };
+
+    return statusMap[status]
   }
 }
 

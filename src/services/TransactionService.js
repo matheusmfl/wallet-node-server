@@ -1,8 +1,15 @@
 import Cart from '../models/carts'
 import Transaction from '../models/Transaction'
 import { randomUUID } from 'node:crypto'
+import PagarMeProvider from '../providers/pagarMeProvider'
 
 class TransactionService {
+  paymentProvider
+
+  constructor(paymentProvider) {
+    this.paymentProvider = paymentProvider || new PagarMeProvider()
+  }
+
   async process({
     cartCode,
     paymentType,
@@ -34,6 +41,16 @@ class TransactionService {
       billingCity: billing.city,
       billingState: billing.state,
       billingZipCode: billing.zipCode,
+    })
+
+    this.paymentProvider.process({
+      transactionCode: transaction.code,
+      total: transaction.total,
+      paymentType,
+      installments,
+      billing,
+      customer,
+      creditCard
     })
 
     return transaction
